@@ -105,3 +105,36 @@ class Transform(nn.Module):
     def eyes(self):
         return self.transformer._eyes
     
+class Transform_Vertices(nn.Module):
+    def __init__(self, camera_mode='projection', P=None, dist_coeffs=None, orig_size=512,
+                 perspective=True, viewing_angle=30, viewing_scale=1.0, 
+                 eye=None, camera_direction=[0,0,1]):
+        super(Transform_Vertices, self).__init__()
+
+        self.camera_mode = camera_mode
+        if self.camera_mode == 'projection':
+            self.transformer = Projection(P, dist_coeffs, orig_size)
+        elif self.camera_mode == 'look':
+            self.transformer = Look(perspective, viewing_angle, viewing_scale, eye, camera_direction)
+        elif self.camera_mode == 'look_at':
+            self.transformer = LookAt(perspective, viewing_angle, viewing_scale, eye)
+        else:
+            raise ValueError('Camera mode has to be one of projection, look or look_at')
+
+    def forward(self, mesh_vertices):
+        mesh_vertices = self.transformer(mesh_vertices)
+        return mesh_vertices
+
+    def set_eyes_from_angles(self, distances, elevations, azimuths):
+        if self.camera_mode not in ['look', 'look_at']:
+            raise ValueError('Projection does not need to set eyes')
+        self.transformer._eye = srf.get_points_from_angles(distances, elevations, azimuths)
+
+    def set_eyes(self, eyes):
+        if self.camera_mode not in ['look', 'look_at']:
+            raise ValueError('Projection does not need to set eyes')
+        self.transformer._eye = eyes
+
+    @property
+    def eyes(self):
+        return self.transformer._eyes
