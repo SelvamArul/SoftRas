@@ -45,6 +45,7 @@ def look_at(vertices, eye, at=[0, 0, 0], up=[0, 1, 0]):
 
     # create new axes
     # eps is chosen as 1e-5 to match the chainer version
+    import ipdb; ipdb.set_trace()
     z_axis = F.normalize(at - eye, eps=1e-5)
     x_axis = F.normalize(torch.cross(up, z_axis), eps=1e-5)
     y_axis = F.normalize(torch.cross(z_axis, x_axis), eps=1e-5)
@@ -60,3 +61,54 @@ def look_at(vertices, eye, at=[0, 0, 0], up=[0, 1, 0]):
     vertices = torch.matmul(vertices, r.transpose(1,2))
 
     return vertices
+
+
+
+def get_look_at(eye, at=[0, 0, 0], up=[0, 1, 0]):
+    """
+    returns look at matrix
+    Camera coordinate system follows openGL convention
+    FIXME
+    """
+
+    device = eye.device
+
+    # if list or tuple convert to numpy array
+    if isinstance(at, list) or isinstance(at, tuple):
+        at = torch.tensor(at, dtype=torch.float32, device=device)
+    # if numpy array convert to tensor
+    elif isinstance(at, np.ndarray):
+        at = torch.from_numpy(at).to(device)
+    elif torch.is_tensor(at):
+        at.to(device)
+
+    if isinstance(up, list) or isinstance(up, tuple):
+        up = torch.tensor(up, dtype=torch.float32, device=device)
+    elif isinstance(up, np.ndarray):
+        up = torch.from_numpy(up).to(device)
+    elif torch.is_tensor(up):
+        up.to(device)
+
+    at = at.reshape_as(eye)
+    up = up.reshape_as(eye)
+
+    # create new axes
+    # eps is chosen as 1e-5 to match the chainer version
+    z_axis = F.normalize(at - eye, eps=1e-5)
+    x_axis = F.normalize(torch.cross(up, z_axis), eps=1e-5)
+    y_axis = F.normalize(torch.cross(z_axis, x_axis), eps=1e-5)
+
+    # create rotation matrix: [bs, 3, 3]
+    r = torch.cat((x_axis[:, None, :], y_axis[:, None, :], z_axis[:, None, :]), dim=1)
+    
+    r = r.squeeze()
+    translation = (r @ eye.transpose(0, 1)).transpose(0, 1)
+
+    transformation = torch.eye(4)
+
+    transformation[:3, :3] =  r.transpose(0,1)
+    transformation[:3, 3] = (-1 * translation)
+
+    # transformation = transformation.inverse()
+
+    return transformation

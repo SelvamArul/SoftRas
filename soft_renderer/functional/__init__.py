@@ -3,7 +3,7 @@ from .ambient_lighting import ambient_lighting
 from .directional_lighting import directional_lighting
 from .load_obj import load_obj
 from .look import look
-from .look_at import look_at
+from .look_at import look_at, get_look_at
 from .perspective import perspective
 from .orthogonal import orthogonal
 from .projection import projection
