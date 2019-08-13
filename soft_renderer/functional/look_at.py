@@ -45,7 +45,7 @@ def look_at(vertices, eye, at=[0, 0, 0], up=[0, 1, 0]):
 
     # create new axes
     # eps is chosen as 1e-5 to match the chainer version
-    import ipdb; ipdb.set_trace()
+    
     z_axis = F.normalize(at - eye, eps=1e-5)
     x_axis = F.normalize(torch.cross(up, z_axis), eps=1e-5)
     y_axis = F.normalize(torch.cross(z_axis, x_axis), eps=1e-5)
@@ -102,12 +102,13 @@ def get_look_at(eye, at=[0, 0, 0], up=[0, 1, 0]):
     r = torch.cat((x_axis[:, None, :], y_axis[:, None, :], z_axis[:, None, :]), dim=1)
     
     r = r.squeeze()
+    print ('eye ', eye)
     translation = (r @ eye.transpose(0, 1)).transpose(0, 1)
 
     transformation = torch.eye(4)
 
-    transformation[:3, :3] =  r.transpose(0,1)
-    transformation[:3, 3] = (-1 * translation)
+    transformation[:3, :3] =  r
+    transformation[:3, 3] = -translation
 
     # transformation = transformation.inverse()
 
