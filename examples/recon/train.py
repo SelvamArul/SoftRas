@@ -107,9 +107,9 @@ def train():
     
     env_name = args.experiment_id
 
-    img_a_logger = VisdomLogger('images', env=env_name, port=8097, opts=dict(title='gt_rgb'))
-    img_b_logger = VisdomLogger('images', env=env_name, port=8097, opts=dict(title='gt_rgb'))
-    rnd_logger = VisdomLogger('images', env=env_name, port=8097, opts=dict(title='gt_rgb'))
+    img_a_logger = VisdomLogger('images', env=env_name, port=8097, opts=dict(title='img_a'))
+    img_b_logger = VisdomLogger('images', env=env_name, port=8097, opts=dict(title='img_b'))
+    rnd_logger = [VisdomLogger('images', env=env_name, port=8097, opts=dict(title='rnd_rgb_{}'.format(_i))) for _i in range(4)]
 
     for i in range(start_iter, args.num_iterations + 1):
         # adjust learning rate and sigma_val (decay after 150k iter)
@@ -127,11 +127,11 @@ def train():
         render_images, laplacian_loss, flatten_loss = model([images_a, images_b], 
                                                             [viewpoints_a, viewpoints_b],
                                                             task='train')
-
-        img_a_logger.log(F.interpolate(images_a.detach().clone().unsqueeze(0), scale_factor=4).squeeze())
-        img_b_logger.log(F.interpolate(images_b.detach().clone().unsqueeze(0), scale_factor=4).squeeze())
-        rnd_logger.log(F.interpolate(render_images.detach().clone().unsqueeze(0), scale_factor=4).squeeze())
-
+        img_a_logger.log(F.interpolate(images_a.detach().clone(), scale_factor=4).squeeze()[:,:3])
+        img_b_logger.log(F.interpolate(images_b.detach().clone(), scale_factor=4).squeeze()[:,:3])
+        for _i in range(4):
+            rnd_logger[_i].log(F.interpolate(render_images[_i].detach().clone(), scale_factor=4).squeeze()[:,:3])
+        import ipdb; ipdb.set_trace()
         laplacian_loss = laplacian_loss.mean()
         flatten_loss = flatten_loss.mean()
 
