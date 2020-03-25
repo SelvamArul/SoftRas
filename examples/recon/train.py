@@ -12,9 +12,20 @@ import imageio
 import time
 import os
 
+from torchnet.logger import VisdomLogger, VisdomPlotLogger
+import torchvision.transforms.functional as tvf
+import torch.nn.functional as F
+
+import visdom
+
+
 CLASS_IDS_ALL = (
     '02691156,02828884,02933112,02958343,03001627,03211117,03636649,' +
     '03691459,04090263,04256520,04379243,04401088,04530566')
+
+
+CLASS_IDS_ALL = (
+    '02691156')
 
 BATCH_SIZE = 64
 LEARNING_RATE = 1e-4
@@ -93,6 +104,12 @@ def train():
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
+    
+    env_name = args.experiment_id
+
+    img_a_logger = VisdomLogger('images', env=env_name, port=8097, opts=dict(title='gt_rgb'))
+    img_b_logger = VisdomLogger('images', env=env_name, port=8097, opts=dict(title='gt_rgb'))
+    rnd_logger = VisdomLogger('images', env=env_name, port=8097, opts=dict(title='gt_rgb'))
 
     for i in range(start_iter, args.num_iterations + 1):
         # adjust learning rate and sigma_val (decay after 150k iter)
@@ -110,6 +127,11 @@ def train():
         render_images, laplacian_loss, flatten_loss = model([images_a, images_b], 
                                                             [viewpoints_a, viewpoints_b],
                                                             task='train')
+
+        img_a_logger.log(F.interpolate(images_a.detach().clone().unsqueeze(0), scale_factor=4).squeeze())
+        img_b_logger.log(F.interpolate(images_b.detach().clone().unsqueeze(0), scale_factor=4).squeeze())
+        rnd_logger.log(F.interpolate(render_images.detach().clone().unsqueeze(0), scale_factor=4).squeeze())
+
         laplacian_loss = laplacian_loss.mean()
         flatten_loss = flatten_loss.mean()
 
