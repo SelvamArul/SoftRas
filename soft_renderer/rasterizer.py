@@ -41,8 +41,20 @@ class SoftRasterizer(nn.Module):
 
     def forward(self, mesh, mode=None):
         image_size = self.image_size * (2 if self.anti_aliasing else 1)
+        _m = mesh.face_vertices[0:1]
+        _m = _m[:,:3]
+        _t = mesh.face_textures[0:1]
+        _t = _t[:, :3]
 
-        images = srf.soft_rasterize(mesh.face_vertices, mesh.face_textures, image_size, 
+        # save tensors 
+        torch.save(_m.cpu(), "vertices.pt")
+        torch.save(_t.cpu(), "colors.pt")
+        # import ipdb; ipdb.set_trace()
+        print (_m)
+        print ("****************")
+        print ("self.aggr_func_rgb ", self.aggr_func_rgb)
+        print ("****************")
+        images = srf.soft_rasterize( _m.contiguous(), _t.contiguous(), image_size,     # mesh.face_vertices, mesh.face_textures, image_size, 
                                     self.background_color, self.near, self.far, 
                                     self.fill_back, self.eps,
                                     self.sigma_val, self.dist_func, self.dist_eps,

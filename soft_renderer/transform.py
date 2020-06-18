@@ -39,6 +39,7 @@ class LookAt(nn.Module):
             self._eye = [0, 0, -(1. / math.tan(math.radians(self.viewing_angle)) + 1)]
 
     def forward(self, vertices):
+        # import ipdb; ipdb.set_trace()
         vertices = srf.look_at(vertices, self._eye)
         # perspective transformation
         if self.perspective:

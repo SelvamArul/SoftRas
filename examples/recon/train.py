@@ -129,9 +129,10 @@ def train():
                                                             task='train')
         img_a_logger.log(F.interpolate(images_a.detach().clone(), scale_factor=4).squeeze()[:,:3])
         img_b_logger.log(F.interpolate(images_b.detach().clone(), scale_factor=4).squeeze()[:,:3])
+        import ipdb; ipdb.set_trace()
         for _i in range(4):
             rnd_logger[_i].log(F.interpolate(render_images[_i].detach().clone(), scale_factor=4).squeeze()[:,:3])
-        import ipdb; ipdb.set_trace()
+        
         laplacian_loss = laplacian_loss.mean()
         flatten_loss = flatten_loss.mean()
 

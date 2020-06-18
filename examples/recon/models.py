@@ -83,7 +83,7 @@ class Decoder(nn.Module):
         vertices = vertices + centroid
         vertices = vertices * 0.5
         faces = self.faces[None, :, :].repeat(batch_size, 1, 1)
-
+        # import ipdb; ipdb.set_trace()
         return vertices, faces
 
 
@@ -94,7 +94,7 @@ class Model(nn.Module):
         self.encoder = Encoder(im_size=args.image_size)
         self.decoder = Decoder(filename_obj)
         self.renderer = sr.SoftRenderer(image_size=args.image_size, sigma_val=args.sigma_val, 
-                                        aggr_func_rgb='hard', camera_mode='look_at', viewing_angle=15,
+                                        aggr_func_rgb='softmax', camera_mode='look_at', viewing_angle=15,
                                         dist_eps=1e-10)
         self.laplacian_loss = sr.LaplacianLoss(self.decoder.vertices_base, self.decoder.faces)
         self.flatten_loss = sr.FlattenLoss(self.decoder.faces)

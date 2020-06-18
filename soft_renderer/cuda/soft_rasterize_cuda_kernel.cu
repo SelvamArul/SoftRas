@@ -2,6 +2,7 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <torch/torch.h>
 
 // for the older gpus atomicAdd with double arguments does not exist
 #if  __CUDA_ARCH__ < 600 and defined(__CUDA_ARCH__)
@@ -230,6 +231,7 @@ __global__ void forward_soft_rasterize_inv_cuda_kernel(
     if (i >= batch_size * num_faces) {
         return;
     }
+
     // const int is = image_size;
     const scalar_t* face = &faces[i * 9];
     scalar_t* face_inv = &faces_info[i * 27];
@@ -326,6 +328,32 @@ __global__ void forward_soft_rasterize_cuda_kernel(
     const scalar_t *face_info = &faces_info[bn * nf * 27] - 27;
 
     const scalar_t threshold = dist_eps * sigma_val;
+
+    bool doPrint = false;
+
+    if (i == 2000)
+        doPrint = true;
+    
+    if (doPrint)
+    {
+        printf("****************************************\n");
+        printf("****************************************\n");
+        printf("****************************************\n");
+        printf(" near %f \n", near);
+        printf(" far %f \n", far);
+        printf(" eps %f \n", eps);
+        printf(" sigma_val %f \n", sigma_val);
+        printf(" func_id_dist %d \n", func_id_dist);
+        printf(" dist_eps %f \n", dist_eps);
+        printf(" gamma_val %f \n", gamma_val);
+        printf(" func_id_rgb %d \n", func_id_rgb);
+        printf(" func_id_alpha %d \n", func_id_alpha);
+        printf(double_side ? "true\n" : "false\n");
+        printf("num_faces %d \n", num_faces);
+        printf("****************************************\n");
+        printf("****************************************\n");
+        printf("****************************************\n");
+    }
 
     // Initialize pixel color
     scalar_t soft_color[4] = {1., 1., 1., 0.};
@@ -668,6 +696,9 @@ std::vector<at::Tensor> forward_soft_rasterize_cuda(
     const int threads = 512;
     const dim3 blocks_1 ((batch_size * num_faces - 1) / threads +1);
 
+    
+    
+    
     AT_DISPATCH_FLOATING_TYPES(faces.type(), "forward_soft_rasterize_inv_cuda", ([&] {
       forward_soft_rasterize_inv_cuda_kernel<scalar_t><<<blocks_1, threads>>>(
           faces.data<scalar_t>(),
@@ -676,13 +707,55 @@ std::vector<at::Tensor> forward_soft_rasterize_cuda(
           num_faces,
           image_size);
       }));
-
+    
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) 
             printf("Error in forward_transform_inv_triangle: %s\n", cudaGetErrorString(err));
 
+    
+    // print faces and faces info
+    printf ("Num faces %d \n", num_faces);
+    
+    torch::Device device(torch::kCPU);
+    auto faceCPU = faces.to(device);
+    const float* facesPtr = faceCPU.data<float>(); 
+    for (int f=0; f< (num_faces*9) ; f+=9)
+    {   
+        for (int k=0; k<9; k+=3)
+            printf ("%f %f %f \n" , facesPtr[f + k], facesPtr[f + k +1], facesPtr[f+ k +2]);
+        printf("\n");
+    }
+
+    printf("face info \n");
+    auto facesInfoCPU = faces_info.to(device);
+    const float* facesInfoPtr = facesInfoCPU.data<float>(); 
+
+    printf("face inv \n");
+    for (int f=0; f< (num_faces*27) ; f+=27)
+    {
+        for (int k=0; k<9; k+=3)
+            printf ("%f %f %f " , facesInfoPtr[f + k], facesInfoPtr[f + k +1], facesInfoPtr[f+ k + 2]);
+        printf("\n");
+    }
+    printf("face sym \n");
+    for (int f=9; f< (num_faces*27) ; f+=27)
+    {
+        for (int k=0; k<9; k+=3)
+            printf ("%f %f %f " , facesInfoPtr[f + k], facesInfoPtr[f + k +1], facesInfoPtr[f+ k + 2]);
+        printf("\n");
+    }
+
+    printf("face obt \n");
+    for (int f=18; f< (num_faces*27) ; f+=27)
+    {
+        for (int k=0; k<9; k+=3)
+            printf ("%f %f %f " , facesInfoPtr[f + k], facesInfoPtr[f + k +1], facesInfoPtr[f+ k + 2]);
+        printf("\n");
+    }
+
     const dim3 blocks_2 ((batch_size * image_size * image_size - 1) / threads +1);
 
+    
     AT_DISPATCH_FLOATING_TYPES(faces.type(), "forward_eff_soft_rasterize_cuda", ([&] {
       forward_soft_rasterize_cuda_kernel<scalar_t><<<blocks_2, threads>>>(
           faces.data<scalar_t>(),
